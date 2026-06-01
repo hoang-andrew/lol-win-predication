@@ -1,2 +1,2 @@
 # lol-win-predication
-Predicting game outcome based on early to mid game factors. 
+Predicting League of Legends Game Winners from Early Game Stats
