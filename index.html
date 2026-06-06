@@ -327,11 +327,17 @@
             </div>
 
             <h3>Aggregating by League</h3>
-            <p>We grouped the data by competitive league to see if this Blue Side advantage is consistent globally across different regions and metas.</p>
-            
-            <div class="chart-container" id="chart-aggregate-container">
-                <div class="loader">Loading chart...</div>
-            </div>
+<p>We grouped the data by competitive league to see if this Blue Side advantage is consistent globally across different regions and metas.</p>
+
+<div class="chart-container" id="chart-aggregate-container">
+    <div class="loader">Loading chart...</div>
+</div>
+
+<p>The table below ranks leagues by Blue Side win rate advantage (Blue Win Rate − Red Win Rate), sorted from largest to smallest:</p>
+
+<div class="table-responsive" id="table-aggregate-container">
+    <div class="loader">Loading table...</div>
+</div>
         </section>
 
         <!-- 3. Assessment of Missingness -->
@@ -528,6 +534,7 @@
             { url: 'chart_univariate.html', id: 'chart-univariate-container' },
             { url: 'chart_bivariate.html', id: 'chart-bivariate-container' },
             { url: 'chart_aggregate.html', id: 'chart-aggregate-container' },
+            { url: 'table_aggregate.html', id: 'table-aggregate-container' },
             { url: 'chart_missingness_mar.html', id: 'chart-missingness-mar-container' },
             { url: 'chart_missingness_mcar.html', id: 'chart-missingness-mcar-container' },
             { url: 'chart_hyp1.html', id: 'chart-hyp1-container' },
