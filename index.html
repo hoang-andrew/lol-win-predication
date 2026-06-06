@@ -265,8 +265,23 @@ async function loadFragment(url, containerId) {
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error('File not found');
-    const html = await response.text();
+    let html = await response.text();
     const container = document.getElementById(containerId);
+
+    // Plotly embeds a hardcoded div id in both the HTML and the JS call.
+    // When the same file is loaded into two containers, the duplicate id
+    // causes the second chart to render blank. We rewrite every id that
+    // appears inside the fragment to be unique per container.
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const plotDiv = doc.querySelector('div[id]');
+    if (plotDiv) {
+      const oldId = plotDiv.id;
+      const newId = oldId + '_' + containerId;
+      // Replace in the raw HTML string so the script tag reference updates too
+      html = html.split(oldId).join(newId);
+    }
+
     container.innerHTML = html;
     const scripts = container.querySelectorAll('script');
     scripts.forEach(oldScript => {
