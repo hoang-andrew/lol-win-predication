@@ -1,15 +1,551 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Predicting LoL Game Winners from Early Game Stats</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicting LoL Game Winners | DSC 80</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 60px auto; padding: 0 20px; }
-        h1 { color: #1a1a2e; }
+        :root {
+            --bg-color: #0b0c10;
+            --surface-color: #1f2833;
+            --primary-color: #66fcf1;
+            --secondary-color: #45a29e;
+            --text-main: #c5c6c7;
+            --text-heading: #ffffff;
+            --blue-side: #1f77b4;
+            --red-side: #d62728;
+            --border-radius: 12px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-heading);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+            background: linear-gradient(90deg, var(--primary-color), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--surface-color);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            padding: 80px 0 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header-meta {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            color: var(--secondary-color);
+        }
+
+        section {
+            background-color: rgba(31, 40, 51, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 252, 241, 0.1);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-5px);
+            border-color: rgba(102, 252, 241, 0.3);
+        }
+
+        /* Stats Highlights */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--surface-color), #111);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-top: 3px solid var(--primary-color);
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--secondary-color);
+        }
+
+        /* Charts & Tables */
+        .chart-container {
+            width: 100%;
+            min-height: 400px;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            color: var(--text-main);
+        }
+
+        .styled-table thead tr {
+            background-color: var(--surface-color);
+            color: var(--primary-color);
+            text-align: left;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .styled-table th, .styled-table td {
+            padding: 12px 15px;
+        }
+
+        .styled-table tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .styled-table tbody tr:nth-of-type(even) {
+            background-color: rgba(31, 40, 51, 0.3);
+        }
+
+        .styled-table tbody tr:hover {
+            background-color: rgba(102, 252, 241, 0.05);
+        }
+
+        /* Nav */
+        nav {
+            position: sticky;
+            top: 0;
+            background-color: rgba(11, 12, 16, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(102, 252, 241, 0.2);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Conclusion Box */
+        .conclusion-box {
+            background-color: rgba(69, 162, 158, 0.1);
+            border-left: 4px solid var(--primary-color);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+
+        .loader {
+            color: var(--secondary-color);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <h1>Predicting League of Legends Game Winners from Early Game Stats</h1>
-    <p>By: Thomas Cung, Andrew Hoang</p>
-    <p>Data source: 2022 LoL Esports Match Data from Oracle's Elixir</p>
+
+    <nav>
+        <div class="container nav-links">
+            <a href="#intro">Introduction</a>
+            <a href="#cleaning">Data Cleaning & EDA</a>
+            <a href="#missingness">Missingness</a>
+            <a href="#hypothesis">Hypothesis Tests</a>
+            <a href="#prediction">Prediction Problem</a>
+            <a href="#baseline">Baseline Model</a>
+            <a href="#final">Final Model</a>
+            <a href="#fairness">Fairness Analysis</a>
+        </div>
+    </nav>
+
+    <header class="container">
+        <h1>Predicting League of Legends Game Winners</h1>
+        <div class="header-meta">
+            <p><strong>Authors:</strong> Thomas Cung, Andrew Hoang</p>
+            <p>DSC 80 Final Project</p>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- 1. Introduction -->
+        <section id="intro">
+            <h2>The Quest for Early Game Predictability</h2>
+            <p>League of Legends (LoL) is one of the most popular and complex esports globally. A professional match can last anywhere from 20 to 50 minutes, involving deep strategy, thousands of micro-decisions, and exponential scaling. But is the outcome determined earlier than we think?</p>
+            
+            <p><strong>Our Central Question:</strong> Can we accurately predict which team will win a professional League of Legends match using only statistics available by the 15-minute mark?</p>
+            
+            <p>To answer this, we analyzed the <strong>2022 LoL Esports Match Data</strong> sourced from <a href="https://oracleselixir.com/tools/downloads" style="color:var(--primary-color)">Oracle's Elixir</a>. This massive dataset contains over 150,000 rows detailing every professional match played in 2022 globally. We focus specifically on the team-level summaries.</p>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Rows</div>
+                    <div class="stat-value">150,348</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Columns</div>
+                    <div class="stat-value">165</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Team Matchups</div>
+                    <div class="stat-value">~25,000</div>
+                </div>
+            </div>
+            
+            <h3>Key Features for Prediction</h3>
+            <ul>
+                <li><code>side</code>: Blue or Red (a known structural element of the game)</li>
+                <li><code>golddiffat15</code> / <code>xpdiffat15</code>: Resource advantages at 15 minutes</li>
+                <li><code>firstblood</code>, <code>firstdragon</code>, <code>firstherald</code>, <code>firsttower</code>: Early game objectives</li>
+            </ul>
+        </section>
+
+        <!-- 2. Data Cleaning & EDA -->
+        <section id="cleaning">
+            <h2>Cleaning and Exploring the Rift</h2>
+            <p>The raw dataset includes rows for individual players and summary rows for the teams. Since we are predicting the team's victory, we filtered the dataset to <code>position == 'team'</code>. We handled data types (ensuring binary objective columns were numeric) and isolated the specific early-game features we needed.</p>
+            
+            <h3>The Cleaned Data (First 10 Rows)</h3>
+            <div class="table-responsive" id="table-head-container">
+                <div class="loader">Loading table...</div>
+            </div>
+
+            <h3>Univariate Analysis: The 15-Minute Gold Swing</h3>
+            <p>Gold is the primary currency in League of Legends, dictating item purchases and power spikes. By looking at the distribution of the gold difference at 15 minutes (<code>golddiffat15</code>), we see a normal distribution centered around 0, but with a slight skew.</p>
+            
+            <div class="chart-container" id="chart-univariate-container">
+                <div class="loader">Loading chart...</div>
+            </div>
+
+            <h3>Bivariate Analysis: The Blue Side Bias</h3>
+            <p>The map in League of Legends is diagonally symmetric, but camera angles and objective pit openings create inherent differences between the Blue (bottom-left) and Red (top-right) sides. Does this impact win rates?</p>
+            
+            <div class="chart-container" id="chart-bivariate-container">
+                <div class="loader">Loading chart...</div>
+            </div>
+
+            <h3>Aggregating by League</h3>
+            <p>We grouped the data by competitive league to see if this Blue Side advantage is consistent globally across different regions and metas.</p>
+            
+            <div class="chart-container" id="chart-aggregate-container">
+                <div class="loader">Loading chart...</div>
+            </div>
+        </section>
+
+        <!-- 3. Assessment of Missingness -->
+        <section id="missingness">
+            <h2>Investigating the Shadows (Missing Data)</h2>
+            <p>In real-world data, things are rarely perfect. We discovered missing values in our crucial 15-minute stats.</p>
+            
+            <h3>Not Missing At Random (NMAR)</h3>
+            <p>We believe the column <code>golddiffat15</code> is <strong>NMAR</strong>. In professional LoL, if a game is a severe "stomp" or a team surrenders, the game might end before 15 minutes. In these cases, the 15-minute stats are never recorded. The fact that the data is missing directly depends on the extreme (unobserved) nature of the gold difference that caused the early end.</p>
+
+            <h3>Missingness Dependency Tests (MAR vs MCAR)</h3>
+            <p>To statistically test missingness, we ran permutation tests.</p>
+            
+            <p><strong>Test 1: Does the missingness of <code>golddiffat15</code> depend on <code>gamelength</code>?</strong><br>
+            Because early endings cause missing 15-minute stats, we expect the gamelength to be significantly different when <code>golddiffat15</code> is missing.</p>
+            
+            <div class="chart-container" id="chart-missingness-mar-container">
+                <div class="loader">Loading test results...</div>
+            </div>
+
+            <p><strong>Test 2: Does the missingness of <code>golddiffat15</code> depend on <code>side</code>?</strong><br>
+            Which side a team is on shouldn't dictate whether a game records a 15-minute timestamp.</p>
+            
+            <div class="chart-container" id="chart-missingness-mcar-container">
+                <div class="loader">Loading test results...</div>
+            </div>
+        </section>
+
+        <!-- 4. Hypothesis Testing -->
+        <section id="hypothesis">
+            <h2>Testing the Structural Advantages</h2>
+            <p>During our EDA, we noticed the Blue side seemed to win more often. We formalized this with rigorous permutation tests (10,000 iterations each).</p>
+
+            <h3>Hypothesis 1: The Blue Side Win Rate Advantage</h3>
+            <ul>
+                <li><strong>Null Hypothesis (H0):</strong> Blue and Red side have equal win rates.</li>
+                <li><strong>Alternative Hypothesis (H1):</strong> Blue side has a higher win rate.</li>
+                <li><strong>Test Statistic:</strong> Difference in win rates (Blue - Red).</li>
+            </ul>
+            
+            <div class="chart-container" id="chart-hyp1-container">
+                <div class="loader">Loading test results...</div>
+            </div>
+            
+            <div class="conclusion-box">
+                <strong>Result: p-value = 0.0000.</strong> We reject the null hypothesis. There is a highly significant statistical advantage to being on the Blue side.
+            </div>
+
+            <h3>Hypothesis 2: Early Resource Generation by Side</h3>
+            <p>Why does Blue side win more? Is it just draft advantage (first pick), or does it translate to in-game resources?</p>
+            <ul>
+                <li><strong>Null Hypothesis (H0):</strong> Blue and Red side have the same mean gold difference at 15 minutes.</li>
+                <li><strong>Alternative Hypothesis (H1):</strong> Blue side has a higher mean gold difference at 15 minutes.</li>
+                <li><strong>Test Statistic:</strong> Difference in mean golddiffat15 (Blue - Red).</li>
+            </ul>
+
+            <div class="chart-container" id="chart-hyp2-container">
+                <div class="loader">Loading test results...</div>
+            </div>
+
+            <div class="conclusion-box">
+                <strong>Result: p-value = 0.0000.</strong> We reject the null hypothesis. Blue side earns significantly more gold by 15 minutes (averaging ~500 more gold), partially explaining the win rate gap.
+            </div>
+        </section>
+
+        <!-- 5. Framing Prediction -->
+        <section id="prediction">
+            <h2>Framing the Prediction Problem</h2>
+            <p>With our data explored and hypotheses tested, we are ready to build a predictive model.</p>
+            
+            <ul>
+                <li><strong>Problem Type:</strong> Binary Classification</li>
+                <li><strong>Response Variable:</strong> <code>result</code> (1 for a win, 0 for a loss). This is the ultimate metric of success in the game.</li>
+                <li><strong>Evaluation Metric:</strong> <strong>Accuracy</strong>. Because every game has exactly one winner and one loser, our dataset is perfectly balanced. Therefore, accuracy is the most straightforward and appropriate metric (no need for F1-score adjustments for class imbalance).</li>
+            </ul>
+
+            <div class="conclusion-box" style="border-color: #ff6b6b; background-color: rgba(255, 107, 107, 0.1);">
+                <strong>Crucial Constraint: Time of Prediction</strong><br>
+                To avoid data leakage, we strictly limit our features to information known <em>at or before 15 minutes</em> into the match. We cannot use total kills, game length, or total dragons, as these are known only when the game ends.
+            </div>
+        </section>
+
+        <!-- 6. Baseline Model -->
+        <section id="baseline">
+            <h2>The Baseline Model</h2>
+            <p>We started with a simple, interpretable model to establish a benchmark.</p>
+            
+            <ul>
+                <li><strong>Model:</strong> Logistic Regression</li>
+                <li><strong>Quantitative Features (4):</strong> <code>golddiffat10</code>, <code>xpdiffat10</code>, <code>golddiffat15</code>, <code>xpdiffat15</code>. These were scaled using <code>StandardScaler</code>.</li>
+                <li><strong>Nominal Features (4):</strong> <code>firstblood</code>, <code>firstdragon</code>, <code>firstherald</code>, <code>firsttower</code>. These are binary (0/1) and passed through directly.</li>
+            </ul>
+
+            <p>The entire process was wrapped in an <code>sklearn.pipeline.Pipeline</code> to prevent data leakage during training.</p>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Train Accuracy</div>
+                    <div class="stat-value" style="color: #45a29e;">~75.3%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Test Accuracy</div>
+                    <div class="stat-value" style="color: #66fcf1;">~74.7%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">5-Fold CV Accuracy</div>
+                    <div class="stat-value" style="color: #c5c6c7;">~75.1%</div>
+                </div>
+            </div>
+
+            <p><strong>Is this a "good" model?</strong> Yes, predicting ~75% of professional match outcomes correctly when the game is only 15 minutes old (and often lasts 35+ minutes) is strong. The close alignment of train and test accuracy indicates we are not overfitting.</p>
+        </section>
+
+        <!-- 7. Final Model -->
+        <section id="final">
+            <h2>The Final Model: Leveling Up</h2>
+            <p>To improve our baseline, we engineered new features based directly on our EDA and Hypothesis Testing findings.</p>
+
+            <h3>Feature Engineering</h3>
+            <ol>
+                <li><strong>Side Advantage (<code>side_blue</code>):</strong> We proved Blue side wins more, so we added side as a binary feature.</li>
+                <li><strong>Interaction Term (<code>side_x_golddiff15</code>):</strong> Since Blue side inherently generates more gold early, this interaction term helps the model understand how a gold advantage scales depending on map orientation.</li>
+                <li><strong>Laning Phase (<code>csdiffat15</code>):</strong> Creep score difference at 15 minutes acts as a strong proxy for individual player skill and laning dominance.</li>
+            </ol>
+
+            <h3>Algorithm & Tuning</h3>
+            <p>We upgraded from Logistic Regression to a <strong>Random Forest Classifier</strong>, which excels at capturing non-linear relationships. We tuned hyperparameters using <code>GridSearchCV</code> (with 5-fold cross-validation) over <code>n_estimators</code>, <code>max_depth</code>, and <code>min_samples_split</code>.</p>
+
+            <div class="chart-container" id="chart-model-comparison-container">
+                <div class="loader">Loading comparison...</div>
+            </div>
+            
+            <p>By incorporating domain knowledge and rigorous tuning, our final model successfully squeezes more predictive power out of the early game data.</p>
+        </section>
+
+        <!-- 8. Fairness Analysis -->
+        <section id="fairness">
+            <h2>Fairness Analysis: Is the Model Biased?</h2>
+            <p>A good data scientist always asks: who does this model fail for? We evaluated if our Final Model performs equitably for teams on the Blue side versus the Red side.</p>
+
+            <ul>
+                <li><strong>Group X:</strong> Blue side teams</li>
+                <li><strong>Group Y:</strong> Red side teams</li>
+                <li><strong>Evaluation Metric:</strong> Accuracy</li>
+                <li><strong>Null Hypothesis (H0):</strong> The model is fair; its accuracy is the same for both sides.</li>
+                <li><strong>Alternative Hypothesis (H1):</strong> The model is unfair; accuracy differs between sides.</li>
+                <li><strong>Test Statistic:</strong> Absolute difference in accuracy (|Accuracy_Blue - Accuracy_Red|)</li>
+            </ul>
+
+            <div class="chart-container" id="chart-fairness-container">
+                <div class="loader">Loading fairness analysis...</div>
+            </div>
+
+            <div class="conclusion-box" id="fairness-conclusion">
+                <strong>Conclusion:</strong> After running a permutation test with 1,000 iterations, we determined the p-value. This tells us whether our model's predictive power is structurally biased towards one side of the map.
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>Built for DSC 80 Final Project - UC San Diego</p>
+        <p>&copy; 2026 Thomas Cung & Andrew Hoang</p>
+    </footer>
+
+    <!-- JavaScript to load the charts generated by Python -->
+    <script>
+        // Helper to fetch and inject HTML fragments
+        async function loadFragment(url, containerId) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('File not found');
+                const html = await response.text();
+                
+                const container = document.getElementById(containerId);
+                container.innerHTML = html;
+                
+                // Extract and execute scripts from the loaded HTML (required for Plotly)
+                const scripts = container.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            } catch (error) {
+                console.log(`Waiting for ${url}...`);
+            }
+        }
+
+        // Try to load charts
+        const components = [
+            { url: 'table_head.html', id: 'table-head-container' },
+            { url: 'chart_univariate.html', id: 'chart-univariate-container' },
+            { url: 'chart_bivariate.html', id: 'chart-bivariate-container' },
+            { url: 'chart_aggregate.html', id: 'chart-aggregate-container' },
+            { url: 'chart_missingness_mar.html', id: 'chart-missingness-mar-container' },
+            { url: 'chart_missingness_mcar.html', id: 'chart-missingness-mcar-container' },
+            { url: 'chart_hyp1.html', id: 'chart-hyp1-container' },
+            { url: 'chart_hyp2.html', id: 'chart-hyp2-container' },
+            { url: 'chart_model_comparison.html', id: 'chart-model-comparison-container' },
+            { url: 'chart_fairness.html', id: 'chart-fairness-container' }
+        ];
+
+        // Load once immediately
+        components.forEach(c => loadFragment(c.url, c.id));
+        
+        // Polling to catch charts when the python script finishes generating them
+        const interval = setInterval(() => {
+            components.forEach(c => loadFragment(c.url, c.id));
+        }, 3000);
+        
+        // Stop polling after 30 seconds
+        setTimeout(() => clearInterval(interval), 30000);
+    </script>
 </body>
 </html>
